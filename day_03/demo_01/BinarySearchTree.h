@@ -157,11 +157,17 @@ public:
         }
 
         // cur == nullptr
-        Node *newNode = new Node(key);
+//        Node *newNode = new Node(key);
+//        if (parent->_key < key)
+//            parent->_right = newNode;
+//        else if (parent->_key > key)
+//            parent->_left = newNode;
+
+        cur = new Node(key);
         if (parent->_key < key)
-            parent->_right = newNode;
+            parent->_right = cur;
         else if (parent->_key > key)
-            parent->_left = newNode;
+            parent->_left = cur;
         return true;
     }
 
