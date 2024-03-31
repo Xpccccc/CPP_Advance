@@ -32,98 +32,74 @@ class AVLTree {
 public:
     typedef AVLTreeNode<K, V> Node;
 
-    // AVL的删除
-    bool Remove(const K& key) {
+    // AVL的查找
+    Node *Find(const K &key) const {
         Node *cur = _root;
-        Node *parent = nullptr;
 
-        // 寻找待删除结点
+        // 从根节点开始搜索
         while (cur) {
             if (cur->_kv.first < key) {
-                parent = cur;
-                cur = cur->_right;
+                cur = cur->_right; // 如果当前节点的键值小于目标键值，则向右子树搜索
             } else if (cur->_kv.first > key) {
-                parent = cur;
-                cur = cur->_left;
-            } else { // 找到待删除结点
-                Node *leftChild = cur->_left;
-                Node *rightChild = cur->_right;
-
-                // 三种情况：无子节点、只有一个子节点、有两个子节点
-                if (!leftChild && !rightChild) { // 无子节点
-                    if (!parent) {
-                        // 待删除结点为根结点
-                        delete cur;
-                        _root = nullptr;
-                        return true;
-                    } else {
-                        // 更新父节点的子节点指针
-                        if (parent->_left == cur)
-                            parent->_left = nullptr;
-                        else
-                            parent->_right = nullptr;
-                        delete cur;
-                        break;
-                    }
-                } else if (!leftChild || !rightChild) { // 只有一个子节点
-                    Node *child = leftChild ? leftChild : rightChild;
-                    if (!parent) {
-                        // 待删除结点为根结点
-                        _root = child;
-                        child->_parent = nullptr;
-                        delete cur;
-                        return true;
-                    } else {
-                        // 更新父节点的子节点指针
-                        if (parent->_left == cur)
-                            parent->_left = child;
-                        else
-                            parent->_right = child;
-                        child->_parent = parent;
-                        delete cur;
-                        break;
-                    }
-                } else { // 有两个子节点
-                    Node *successor = GetSuccessor(cur);
-                    cur->_kv = successor->_kv;
-                    cur = successor;
-                    // 继续循环以删除后继结点
-                }
+                cur = cur->_left; // 如果当前节点的键值大于目标键值，则向左子树搜索
+            } else {
+                return cur; // 找到目标键值，返回当前节点
             }
         }
 
-        // 判断是否需要进行平衡调整
-        while (parent) {
-            if (parent->_bf == 0) {
-                // 插入前平衡因子为0，删除后仍然平衡，无需调整
-                break;
-            } else if (parent->_bf == 1 || parent->_bf == -1) {
-                // 插入前平衡因子为1或-1，删除后变为0，需要向上迭代检查
-                cur = parent;
-                parent = parent->_parent;
-            } else if (parent->_bf == 2 || parent->_bf == -2) {
-                // 插入前平衡因子为2或-2，删除后可能需要进行旋转调整
-                if (parent->_bf == 2 && parent->_right->_bf == 1) {
-                    RotateL(parent);
-                } else if (parent->_bf == -2 && parent->_left->_bf == -1) {
-                    RotateR(parent);
-                } else if (parent->_bf == 2 && parent->_right->_bf == -1) {
-                    RotateRL(parent);
-                } else {
-                    RotateLR(parent);
-                }
-                parent = parent->_parent; // 旋转后需要向上迭代检查
-            }
-        }
-        return true;
+        return nullptr; // 没有找到目标键值，返回空指针
     }
 
-    // 用于找到待删除节点的后继节点，即比当前节点大的最小节点。
-    Node* GetSuccessor(Node *node) {
-        node = node->_right;
+
+    // AVL的删除
+    bool Remove(const K &key) {
+        return Remove(_root, key);
+    }
+
+    bool Remove(Node *&root, const K &key) {
+        if (!root)
+            return false;
+
+        if (key < root->_kv.first) {
+            bool res = Remove(root->_left, key);
+            // 重新计算平衡因子并进行平衡调整
+            if (res)
+                updateBalanceFactor(root);
+            return res;
+        } else if (key > root->_kv.first) {
+            bool res = Remove(root->_right, key);
+            // 重新计算平衡因子并进行平衡调整
+            if (res)
+                updateBalanceFactor(root);
+            return res;
+        } else {
+            if (!root->_left || !root->_right) {
+                Node *temp = root;
+                root = (root->_left) ? root->_left : root->_right;
+                if (root)
+                    root->_parent = temp->_parent;
+                delete temp;
+            } else {
+                Node *successor = GetSuccessor(root->_right);
+                root->_kv = successor->_kv;
+                Remove(root->_right, successor->_kv.first);
+                // 重新计算平衡因子并进行平衡调整
+                updateBalanceFactor(root);
+            }
+            return true;
+        }
+    }
+
+    Node *GetSuccessor(Node *node) {
         while (node->_left)
             node = node->_left;
         return node;
+    }
+
+    void updateBalanceFactor(Node *node) {
+        int leftHeight = (node->_left) ? _Height(node->_left) : -1;
+        int rightHeight = (node->_right) ? _Height(node->_right) : -1;
+        node->_bf = rightHeight - leftHeight;
     }
 
 
@@ -371,7 +347,7 @@ private:
     }
 
 
-    Node *_root;
+    Node *_root= nullptr;
 };
 
 void test_AVLTree1() {
@@ -405,6 +381,29 @@ void test_AVLTree3() {
     avl.Remove(11);
     avl.InOrder();
     cout << avl.IsBalance() << endl;
+}
+
+void test_AVLTree4() {
+    int a[] = {16, 3, 7, 11, 9, 26, 18, 14, 15};
+    AVLTree<int, string> avl;
+    for (auto e: a) {
+        avl.Insert(make_pair(e, ""));
+    }
+    avl.InOrder();
+    cout << "====" << endl;
+//    cout << avl.IsBalance() << endl;
+
+    avl.Remove(11);
+    avl.Remove(14);
+    avl.Remove(3);
+    avl.Remove(9);
+
+    avl.InOrder();
+
+    cout << avl.IsBalance() << endl;
+
+    AVLTreeNode<int, string> *node = avl.Find(7);
+    cout << node->_kv.first << endl;
 }
 
 
