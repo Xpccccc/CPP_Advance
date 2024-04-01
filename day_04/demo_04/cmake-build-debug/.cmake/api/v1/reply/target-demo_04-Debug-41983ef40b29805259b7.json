@@ -89,7 +89,9 @@
 			"name" : "Header Files",
 			"sourceIndexes" : 
 			[
-				1
+				1,
+				2,
+				3
 			]
 		}
 	],
@@ -104,6 +106,16 @@
 		{
 			"backtrace" : 1,
 			"path" : "RBTree.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "MySet.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "MyMap.h",
 			"sourceGroupIndex" : 1
 		}
 	],

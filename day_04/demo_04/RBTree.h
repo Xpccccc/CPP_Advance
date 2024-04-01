@@ -16,24 +16,108 @@ enum Colour {
     BLACK
 };
 
-template<class K, class V>
+template<class T>
 struct RBTreeNode {
-    typedef RBTreeNode<K, V> Node;
+    typedef RBTreeNode<T> Node;
     Node *_left;
     Node *_right;
     Node *_parent;
     Colour _col;
 
-    pair<K, V> _kv;
+    // 这里的T用的模版参数，可能传的是K，也可能传的pair<>，
+    // 那么在下面插入的时候，存在比较，pair<>的自带的比较不符合我们的要求，得自己取出pair<>的key出来比较
+    T _data;
 
-    RBTreeNode(const pair<K, V> &kv) : _left(nullptr), _right(nullptr), _parent(nullptr), _col(RED), _kv(kv) {}
+    RBTreeNode(const T &data) : _left(nullptr), _right(nullptr), _parent(nullptr), _col(RED), _data(data) {}
 };
 
 
-template<class K, class V>
+// 迭代器
+template<class T, class Ptr, class Ref>
+struct RBTreeIterator {
+    typedef RBTreeNode<T> Node;
+
+    typedef RBTreeIterator<T, Ptr, Ref> Self;
+
+    // 用结点构造迭代器
+    RBTreeIterator(Node *node) : _node(node) {}
+
+    Node *_node;
+
+    Ref operator*() {
+        return _node->_data;
+    }
+
+    Ptr operator->() {
+        return &_node->_data;
+    }
+
+    Self &operator++() {
+        if (_node->_right) {
+            // 找右子树的最左结点
+            Node *subLeft = _node->_right;
+            while (subLeft->_left) {
+                subLeft = subLeft->_left;
+            }
+            _node = subLeft;
+        } else {
+            // 右子树为空，说明右子树访问过了，那么当前结点也访问过了，继续往上找
+            Node *cur = _node;
+            Node *parent = cur->_parent;
+
+            // 如果当前结点是父结点的左子树，说明需要访问父结点
+            // 如果当前结点是父结点的右子树，说明需要往上查找当前结点是父亲的左孩子（找到这个父亲并访问）
+            while (parent && parent->_right == cur) {
+                cur = parent;
+                parent = cur->_parent;
+            }
+            _node = parent;
+        }
+        return *this;
+    }
+
+    bool operator!=(const Self &s) {
+        return s._node != _node;
+    }
+
+    bool operator==(const Self &s) {
+        return s._node == _node;
+    }
+};
+
+template<class K, class T, class KeyofT>
 class RBTree {
-    typedef RBTreeNode<K, V> Node;
+    typedef RBTreeNode<T> Node;
 public:
+
+    typedef RBTreeIterator<T, T *, T &> iterator;
+    typedef RBTreeIterator<T, const T *, const T &> const_iterator;
+
+    iterator begin() {
+        // 最左结点是起始位置
+        Node *subLeft = _root;
+        while (subLeft && subLeft->_left) {
+            subLeft = subLeft->_left;
+        }
+        return iterator(subLeft);
+    }
+
+    iterator end() {
+        return iterator(nullptr); // 单参数的构造函数能够隐式类型转换
+    }
+
+    const_iterator begin() const {
+        // 最左结点是起始位置
+        Node *subLeft = _root;
+        while (subLeft && subLeft->_left) {
+            subLeft = subLeft->_left;
+        }
+        return const_iterator(subLeft);
+    }
+
+    const_iterator end() const {
+        return const_iterator(nullptr); // 单参数的构造函数能够隐式类型转换
+    }
 
     // 红黑树的查找
     Node *Find(const K &key) const {
@@ -174,34 +258,40 @@ public:
 
 
     // 红黑树的插入
-    bool Insert(const pair<K, V> &kv) {
+    pair<iterator, bool> Insert(const T &data) {
         if (_root == nullptr) {
-            _root = new Node(kv);
+            _root = new Node(data);
             _root->_col = BLACK;
-            return true;
+            return make_pair(_root, true);
         }
 
         Node *parent = nullptr;
         Node *cur = _root;
+
+        // 取key
+        KeyofT kot;
+
         while (cur) {
-            if (cur->_kv.first < kv.first) {
+            if (kot(cur->_data) < kot(data)) {
                 parent = cur;
                 cur = cur->_right;
-            } else if (cur->_kv.first > kv.first) {
+            } else if (kot(cur->_data) > kot(data)) {
                 parent = cur;
                 cur = cur->_left;
             } else {
-                return false;
+                return make_pair(cur, false);
             }
         }
 
-        cur = new Node(kv);
-        if (parent->_kv.first > cur->_kv.first)
+        cur = new Node(data);
+        if (kot(parent->_data) > kot(data))
             parent->_left = cur;
         else
             parent->_right = cur;
 
         cur->_parent = parent;
+
+        Node *newnode = cur;//记录当前cur位置，后面旋转可能会改变位置
 
         while (parent && parent->_col == RED) {
 
@@ -298,59 +388,12 @@ public:
             }
         }
         _root->_col = BLACK; // 根结点始终为黑
-        return true;
-    }
-
-    void InOrder() {
-        return _InOrder(_root);
-    }
-
-    bool IsBalance() {
-        if (_root && _root->_col == RED)
-            return false;
-        int refBlackNum = 0; // 每条路径黑色结点的个数，这里以最右边的路径黑色结点的个数为基准
-        Node *cur = _root;
-        while (cur) {
-            if (cur->_col == BLACK)
-                ++refBlackNum;
-            cur = cur->_right;
-        }
-        return _Check(_root, 0, refBlackNum);
+        return make_pair(newnode, true);
     }
 
 private:
     Node *_root = nullptr;
 
-    bool _Check(Node *cur, int blackNum, int refBlackNum) {
-        if (cur == nullptr) {
-            if (blackNum != refBlackNum) {
-                cout << "黑结点数量不一样" << endl;
-                return false;// 到空结点开始比较黑结点是不是一样
-            }
-
-            cout << blackNum << endl;
-            return true;
-        }
-
-        if (cur->_col == RED && cur->_parent->_col == RED) {
-            cout << "存在连续红结点：" << cur->_kv.first << endl;
-            return false;
-        }
-
-        if (cur->_col == BLACK)
-            ++blackNum; // 统计该条路径的黑结点个数
-
-
-        return _Check(cur->_left, blackNum, refBlackNum) && _Check(cur->_right, blackNum, refBlackNum);
-    }
-
-    void _InOrder(Node *root) {
-        if (root == nullptr)
-            return;
-        _InOrder(root->_left);
-        cout << root->_kv.first << endl;
-        _InOrder(root->_right);
-    }
 
     void RotateL(Node *parent) {
         Node *subR = parent->_right;
@@ -408,45 +451,6 @@ private:
         }
     }
 };
-
-void test_RBTree2() {
-    int a[] = {16, 3, 7, 11, 9, 26, 18, 14, 15};
-    RBTree<int, string> rbt;
-    for (auto e: a) {
-        if (e == 14) {
-            int a = 1;
-        }
-        rbt.Insert(make_pair(e, ""));
-    }
-    rbt.InOrder();
-    cout << rbt.IsBalance() << endl;
-
-    cout << "==============================" << endl;
-
-    rbt.Remove(11);
-    rbt.Remove(3);
-    rbt.Remove(9);
-    rbt.Remove(14);
-
-    rbt.InOrder();
-    cout << rbt.IsBalance() << endl;
-
-}
-
-
-void test_RBTree1() {
-    int a[] = {16, 3, 7, 11, 9, 26, 18, 14, 15};
-    RBTree<int, string> rbt;
-    for (auto e: a) {
-        if (e == 14) {
-            int a = 1;
-        }
-        rbt.Insert(make_pair(e, ""));
-    }
-    rbt.InOrder();
-    cout << rbt.IsBalance() << endl;
-}
-
 
 
 

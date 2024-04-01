@@ -1,8 +1,14 @@
 #include <iostream>
+
 #include "RBTree.h"
+#include "MyMap.h"
+#include "MySet.h"
+
 
 int main() {
-//    test_RBTree1();
-    test_RBTree2();
+    xp::test_set1();
+
+//    xp::test_map1();
+    xp::test_map2();
     return 0;
 }
