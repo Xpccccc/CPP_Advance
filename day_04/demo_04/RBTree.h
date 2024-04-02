@@ -106,7 +106,7 @@ public:
         return iterator(nullptr); // 单参数的构造函数能够隐式类型转换
     }
 
-    const_iterator begin() const {
+    const_iterator cbegin() const {
         // 最左结点是起始位置
         Node *subLeft = _root;
         while (subLeft && subLeft->_left) {
@@ -115,7 +115,7 @@ public:
         return const_iterator(subLeft);
     }
 
-    const_iterator end() const {
+    const_iterator cend() const {
         return const_iterator(nullptr); // 单参数的构造函数能够隐式类型转换
     }
 
