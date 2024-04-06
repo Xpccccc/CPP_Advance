@@ -92,6 +92,7 @@ public:
                 prev = cur;
                 cur = cur->_next;
             }
+            --_n;
             return true;
         } else {
             return false;
