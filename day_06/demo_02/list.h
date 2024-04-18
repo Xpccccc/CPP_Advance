@@ -30,7 +30,7 @@ namespace xp {
         }
 
         // 这里val的类型是左值
-        ListNode(T &&val) : _next(nullptr), _prev(nullptr), data(move(val)) { // data(val)调用拷贝构造
+        ListNode(T &&val) : _next(nullptr), _prev(nullptr), data(forward<T>(val)) { // data(val)调用拷贝构造
 
 
         }
@@ -175,7 +175,7 @@ namespace xp {
 //            newnode->_next = _head;
 //            _head->_prev = newnode;
 
-            insert(end(), move(val));
+            insert(end(), forward<T>(val));
         }
 
         iterator insert(iterator pos, const T &val) {
@@ -197,7 +197,7 @@ namespace xp {
 
             Node *cur = pos._node;
             Node *prev = cur->_prev;
-            Node *newnode = new Node(move(val));
+            Node *newnode = new Node(forward<T>(val));
 
             newnode->_next = cur;
             newnode->_prev = prev;

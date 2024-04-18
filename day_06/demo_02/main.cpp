@@ -160,14 +160,13 @@ namespace xp {
             cout << "string(string&& s) -- 移动语义" << endl;
             swap(s); // 转移s的资源给*this
         }
-//
-////
-////        // 移动赋值
-//        string &operator=(string &&s) {
-//            cout << "string& operator=(string&& s) -- 移动语义" << endl;
-//            swap(s);
-//            return *this;
-//        }
+
+        // 移动赋值
+        string &operator=(string &&s) {
+            cout << "string& operator=(string&& s) -- 移动语义" << endl;
+            swap(s);
+            return *this;
+        }
 
         ~string() {
             delete[] _str;
@@ -262,35 +261,28 @@ namespace xp {
 //    return 0;
 //}
 
-int main() {
-// 在bit::string to_string(int value)函数中可以看到，这里
-// 只能使用传值返回，传值返回会导致至少1次拷贝构造(如果是一些旧一点的编译器可能是两次拷贝构造)。
 
-    // 这里 xp::to_string(1234)的返回值是右值 -- 继续调用移动构造 ，移动构造+移动构造 = 移动构造
-    xp::string ret1;
-    ret1 = xp::to_string(1234);
-    return 0;
-}
-
+//
 //int main() {
-//    int &&r = 10; // 右值被右值引用后，右值引用的属性是左值，即r是左值
-//    r++;
-//    const int & rr = 1;
-//    &rr;
-//    &r;
+//// 在bit::string to_string(int value)函数中可以看到，这里
+//// 只能使用传值返回，传值返回会导致至少1次拷贝构造(如果是一些旧一点的编译器可能是两次拷贝构造)。
+//
+//    // 这里 xp::to_string(1234)的返回值是右值 -- 继续调用移动构造 ，移动构造+移动构造 = 移动构造
+//    xp::string ret1;
+//    ret1 = xp::to_string(1234);
 //    return 0;
 //}
 
 
-
 //#include "list.h"
 //
-//
+//// 右值引用使用move引用左值的场景
 //int main() {
 //    xp::list<xp::string> lt;
 //    xp::string s1("123"); // s1是左值
 ////    lt.push_back(s1);
-//    lt.push_back(move(s1));
+//    move(s1);
+//    lt.push_back(move(s1)); // 这里move以后，s1的资源就被掠夺了，置空了，其实不是这么用的
 //    cout << "=================" << endl;
 //
 //    lt.push_back(xp::string("222")); // 右值
@@ -300,6 +292,23 @@ int main() {
 //    cout << "=================" << endl;
 //    return 0;
 //}
+
+
+//// 右值引用的属性是左值，所以才可以被转移资源
+//// 如果右值引用的属性是右值，那么它就不能被转移资源，因为右值是不能改变的
+//int main() {
+//    int &&r = 10; // 右值被右值引用后，右值引用的属性是左值，即r是左值
+//    r++;
+//    const int &rr = 1;
+//    &rr; // 左值才能被取地址
+//    &r;
+//    return 0;
+//}
+
+
+
+
+
 
 
 
